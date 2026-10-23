@@ -21,5 +21,6 @@ fi
 $compose exec -T web php cli/studip plugin:migrate ExclusiveBBB
 $compose exec -T web php cli/studip plugin:activate ExclusiveBBB
 $compose exec -T web php "$plugin/dev/seed.php"
+$compose exec -T web php "$plugin/dev/seed_requests.php"
 
 echo "done: http://<vm>:${EXBBB_PORT:-8000} (root@studip / testing)"

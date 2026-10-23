@@ -75,7 +75,11 @@ docker compose -f dev/docker-compose.yml up -d --build   # Stud.IP auf Port 8000
 dev/setup.sh                                             # Plugin registrieren, Demo-Räume/Server anlegen
 ```
 
-- Demo-Logins aus den Stud.IP-Demodaten, z. B. `root@studip` / `testing`.
+- Demo-Logins aus den Stud.IP-Demodaten, z. B. `root@studip` / `testing`. Raumvergabe für die Server ist `test_admin`.
+- `dev/seed_requests.php` (von `setup.sh` aufgerufen) legt die Lehrende `prof_musterfrau` / `testing` an.
+  Dazu kommen die Veranstaltung „Ringvorlesung Digitale Souveränität“ mit drei Terminen und drei offene
+  Anfragen auf die Server, die `test_admin` unter *Raumverwaltung → Raumplanung → Anfragenliste* bearbeiten kann:
+  ein Einzeltermin, zwei Termine und eine einfache Anfrage ohne Veranstaltung.
 - E-Mails landen in Mailpit (nur im Docker-Netz, Port 8025).
 - Die BBB-Server sind Mocks (`dev/bbb-mock`, nur im Docker-Netz):
   - `http://bbb-node1:8090/bigbluebutton/` mit Secret `node1-dev-secret`,
