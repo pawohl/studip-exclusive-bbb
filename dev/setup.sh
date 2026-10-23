@@ -18,6 +18,9 @@ registered=$($compose exec -T web sh -c \
 if [ "$registered" = "0" ]; then
     $compose exec -T web php cli/studip plugin:register "$plugin"
 fi
+# the data volume is created root-owned; Apache needs it for uploads and the plugin asset cache
+$compose exec -T -u root web chown -R www-data:www-data /var/www/studip/data
+
 $compose exec -T web php cli/studip plugin:migrate ExclusiveBBB
 $compose exec -T web php cli/studip plugin:activate ExclusiveBBB
 $compose exec -T web php "$plugin/dev/seed.php"
