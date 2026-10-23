@@ -1,0 +1,21 @@
+{
+    "name": "exclusivebbb/studip-exclusive-bbb",
+    "description": "Stud.IP plugin: exclusively bookable BigBlueButton nodes via the resource management",
+    "type": "project",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ExclusiveBBB\\": "lib/",
+            "ExclusiveBBB\\Tests\\": "tests/unit/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

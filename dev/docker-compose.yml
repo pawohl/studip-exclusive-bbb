@@ -1,0 +1,70 @@
+# Development stack: Stud.IP 6.2 (built from ../../studip, branch 6.2) with
+# this plugin mounted, MariaDB, Mailpit and two BBB API mocks as "nodes".
+#
+#   docker compose -f dev/docker-compose.yml up -d --build
+#   dev/setup.sh            # register plugin, create demo node resources
+#
+# Stud.IP: http://<vm>:8000  (root@studip / testing from the demo data)
+# Mailpit is only reachable inside the network (port 8025).
+name: exbbb
+
+services:
+  db:
+    image: mariadb:10.5
+    volumes:
+      - db_data:/var/lib/mysql
+      - ../../studip/docker/studip/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: 1
+      MYSQL_DATABASE: studip_db
+      MYSQL_USER: studip_user
+      MYSQL_PASSWORD: studip_password
+
+  web:
+    build:
+      context: ../../studip
+      dockerfile: ./docker/studip/Dockerfile
+    image: exbbb-studip:6.2
+    depends_on:
+      - db
+      - mailpit
+    ports:
+      - "8000:80"
+    volumes:
+      - web_data:/var/www/studip/data
+      - ..:/var/www/studip/public/plugins_packages/exclusivebbb/ExclusiveBBB
+      - ./config_local.inc.php:/var/www/studip/config/config_local.inc.php:ro
+    environment:
+      MYSQL_DATABASE: studip_db
+      MYSQL_USER: studip_user
+      MYSQL_PASSWORD: studip_password
+      MYSQL_HOST: db
+      STUDIP_MAIL_TRANSPORT: smtp
+      STUDIP_NAME: ExclusiveBBB Dev
+      AUTO_MIGRATE: 1
+      DEMO_DATA: 1
+
+  mailpit:
+    image: axllent/mailpit:latest
+
+  bbb-node1:
+    image: python:3.13-alpine
+    command: ["python", "-u", "/app/bbb_mock.py"]
+    volumes:
+      - ./bbb-mock:/app:ro
+    environment:
+      NODE_NAME: node1
+      BBB_SECRET: node1-dev-secret
+
+  bbb-node2:
+    image: python:3.13-alpine
+    command: ["python", "-u", "/app/bbb_mock.py"]
+    volumes:
+      - ./bbb-mock:/app:ro
+    environment:
+      NODE_NAME: node2
+      BBB_SECRET: node2-dev-secret
+
+volumes:
+  db_data: {}
+  web_data: {}

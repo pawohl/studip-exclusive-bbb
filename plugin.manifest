@@ -1,0 +1,11 @@
+pluginname=ExclusiveBBB
+pluginclassname=ExclusiveBBB
+origin=exclusivebbb
+version=0.1.0
+studipMinVersion=6.2
+studipMaxVersion=6.2.99
+localedomain=exclusivebbb
+displayname=Exklusive BigBlueButton-Server
+descriptionshort=Exklusiv buchbare BigBlueButton-Server über die Raumverwaltung
+descriptionlong=BigBlueButton-Server werden als virtuelle Räume in der Raumverwaltung gebucht. Zu jeder Buchung gehört eine Konferenz mit eigener Teilnahmeseite und getrennten Passwörtern für Teilnehmende und Moderierende. Konferenzen werden nach Buchungsende plus Puffer automatisch beendet.
+category=Kommunikation und Zusammenarbeit
