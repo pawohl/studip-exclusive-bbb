@@ -108,3 +108,33 @@ foreach (['test_admin', 'test_dozent', 'test_tutor', 'test_autor', 'root@studip'
         UserConfig::get($demo_user->id)->store('TERMS_ACCEPTED', 1);
     }
 }
+
+// The demo data's semesters end in March 2026; core pages (room requests, booking
+// dialog) read Semester::findCurrent()->id without a null check. Add consecutive
+// semesters until one year ahead is covered.
+$last = Semester::findOneBySQL('1 ORDER BY ende DESC');
+while ($last && $last->ende < strtotime('+1 year')) {
+    $begin = $last->ende + 1;
+    $year = (int) date('Y', $begin);
+    $summer = (int) date('n', $begin) === 4;
+
+    $semester = new Semester();
+    if ($summer) {
+        $semester->name = 'SoSe ' . $year;
+        $semester->semester_token = 'SoSe' . substr($year, 2);
+        $semester->ende = mktime(23, 59, 59, 9, 30, $year);
+        $semester->vorles_beginn = mktime(0, 0, 0, 4, 13, $year);
+        $semester->vorles_ende = mktime(23, 59, 59, 7, 17, $year);
+    } else {
+        $semester->name = sprintf('WiSe %d/%d', $year, $year + 1);
+        $semester->semester_token = sprintf('WiSe%s/%s', substr($year, 2), substr($year + 1, 2));
+        $semester->ende = mktime(23, 59, 59, 3, 31, $year + 1);
+        $semester->vorles_beginn = mktime(0, 0, 0, 10, 12, $year);
+        $semester->vorles_ende = mktime(23, 59, 59, 2, 5, $year + 1);
+    }
+    $semester->beginn = $begin;
+    $semester->visible = 1;
+    $semester->store();
+    echo "created semester {$semester->name}\n";
+    $last = $semester;
+}
