@@ -1,0 +1,11 @@
+{
+    "name": "exclusivebbb-e2e",
+    "private": true,
+    "license": "GPL-2.0-or-later",
+    "scripts": {
+        "test": "playwright test"
+    },
+    "devDependencies": {
+        "@playwright/test": "1.64.0"
+    }
+}

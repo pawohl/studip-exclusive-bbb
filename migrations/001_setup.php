@@ -106,19 +106,23 @@ class Setup extends Migration
             }
         }
 
-        // the join page must be reachable without login
+        // The join page must be reachable without login. On a fresh install the
+        // plugin row does not exist yet while migrating; ExclusiveBBB::onEnable()
+        // grants the role then.
         $plugin_id = $this->pluginId();
-        $db->execute(
-            "INSERT IGNORE INTO roles_plugins (roleid, pluginid)
-             SELECT roleid, ? FROM roles WHERE rolename = 'Nobody'",
-            [$plugin_id]
-        );
+        if ($plugin_id) {
+            $db->execute(
+                "INSERT IGNORE INTO roles_plugins (roleid, pluginid)
+                 SELECT roleid, ? FROM roles WHERE rolename = 'Nobody'",
+                [$plugin_id]
+            );
+        }
 
         $scheduler = CronjobScheduler::getInstance();
         $task_id = $scheduler->registerTask($this->cronjobFile(), true);
         if (!CronjobSchedule::countBySQL('task_id = ?', [$task_id])) {
             // every minute
-            $scheduler->schedulePeriodic($task_id);
+            $scheduler->schedulePeriodic($task_id)->activate();
         }
     }
 

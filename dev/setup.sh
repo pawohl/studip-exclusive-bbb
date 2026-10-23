@@ -12,11 +12,14 @@ until $compose exec -T web php cli/studip config:get UNI_NAME_CLEAN >/dev/null 2
     sleep 3
 done
 
-if ! $compose exec -T web php cli/studip plugin:info ExclusiveBBB >/dev/null 2>&1; then
+registered=$($compose exec -T web sh -c \
+    'mysql -N -u "$MYSQL_USER" -h "$MYSQL_HOST" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" \
+     -e "SELECT COUNT(*) FROM plugins WHERE pluginclassname = \"ExclusiveBBB\""')
+if [ "$registered" = "0" ]; then
     $compose exec -T web php cli/studip plugin:register "$plugin"
 fi
 $compose exec -T web php cli/studip plugin:migrate ExclusiveBBB
 $compose exec -T web php cli/studip plugin:activate ExclusiveBBB
 $compose exec -T web php "$plugin/dev/seed.php"
 
-echo "done: http://<vm>:8000 (root@studip / testing)"
+echo "done: http://<vm>:${EXBBB_PORT:-8000} (root@studip / testing)"

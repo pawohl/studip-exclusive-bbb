@@ -15,5 +15,7 @@ $MAIL_SMTP_OPTIONS = [
     'start_tls' => 0,
 ];
 $MAIL_VALIDATE_HOST = false;
+// CLI has no SERVER_NAME; without this the sender would be "wwwrun@"
+$MAIL_LOCALHOST = 'studip.dev.example';
 
 $CONTENT_LANGUAGES['en_GB'] = ['picture' => 'lang_en.gif', 'name' => 'English'];

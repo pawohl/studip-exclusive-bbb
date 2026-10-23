@@ -1,0 +1,4 @@
+# The MariaDB 11.x client in the php:8.1 base image requires TLS by default;
+# the dev database (MariaDB 10.5) does not offer it.
+[client]
+skip-ssl

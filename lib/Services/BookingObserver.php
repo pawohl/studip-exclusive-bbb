@@ -41,7 +41,17 @@ class BookingObserver
         }
         if ($changed) {
             // the second run sees enough buffer and returns without recursing again
-            $booking->validate();
+            try {
+                $booking->validate();
+            } catch (\ResourceBookingOverlapException $e) {
+                // the core message only names the colliding range; explain the buffer
+                throw new \ResourceBookingOverlapException(sprintf(
+                    '%s (Exklusive BBB-Server benötigen %u Minuten Vorlauf vor und %u Minuten Puffer nach jeder Buchung.)',
+                    $e->getMessage(),
+                    Settings::prepSeconds() / 60,
+                    Settings::bufferSeconds() / 60
+                ), 0, $e->getRange());
+            }
         }
     }
 

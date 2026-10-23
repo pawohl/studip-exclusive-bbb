@@ -71,7 +71,7 @@ Aufzeichnungen sind in Version 0.1 abgeschaltet (`record=false`).
 Voraussetzung: Docker, der Stud.IP-Checkout in `../studip` auf Branch `6.2`.
 
 ```sh
-docker compose -f dev/docker-compose.yml up -d --build   # Stud.IP auf Port 8000
+docker compose -f dev/docker-compose.yml up -d --build   # Stud.IP auf Port 8000 (EXBBB_PORT=80 für Port 80)
 dev/setup.sh                                             # Plugin registrieren, Demo-Räume/Server anlegen
 ```
 
@@ -88,6 +88,24 @@ Unit-Tests (PHP 8.1 im Web-Container):
 docker run --rm -u "$(id -u):$(id -g)" -v "$PWD":/app -w /app composer:2 install --ignore-platform-reqs
 docker compose -f dev/docker-compose.yml exec \
   -w /var/www/studip/public/plugins_packages/exclusivebbb/ExclusiveBBB web vendor/bin/phpunit
+```
+
+Integrationstest gegen das echte Buchungsmodell, die Mocks und Mailpit (43 Prüfungen). Er legt Buchungen
+an und entfernt sie wieder; mit `--keep-now` bleibt eine laufende Buchung für die E2E-Tests stehen:
+
+```sh
+docker compose -f dev/docker-compose.yml exec web \
+  php public/plugins_packages/exclusivebbb/ExclusiveBBB/tests/integration/booking_flow.php --keep-now
+docker cp exbbb-web-1:/tmp/exbbb-now.json dev/screenshots/now.json
+```
+
+E2E-Tests mit Playwright im Docker-Netz des Stacks. Screenshots landen in `dev/screenshots/`:
+
+```sh
+docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work -w /work/tests/e2e \
+  mcr.microsoft.com/playwright:v1.64.0-noble npm install
+docker run --rm --network exbbb_default -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work \
+  -w /work/tests/e2e mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test
 ```
 
 Cronjob von Hand ausführen:

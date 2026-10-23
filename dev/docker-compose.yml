@@ -4,7 +4,7 @@
 #   docker compose -f dev/docker-compose.yml up -d --build
 #   dev/setup.sh            # register plugin, create demo node resources
 #
-# Stud.IP: http://<vm>:8000  (root@studip / testing from the demo data)
+# Stud.IP: http://<vm>:${EXBBB_PORT:-8000}  (root@studip / testing from the demo data)
 # Mailpit is only reachable inside the network (port 8025).
 name: exbbb
 
@@ -25,15 +25,18 @@ services:
       context: ../../studip
       dockerfile: ./docker/studip/Dockerfile
     image: exbbb-studip:6.2
+    # the entrypoint gives up if MariaDB is still initialising on first start
+    restart: on-failure
     depends_on:
       - db
       - mailpit
     ports:
-      - "8000:80"
+      - "${EXBBB_PORT:-8000}:80"
     volumes:
       - web_data:/var/www/studip/data
       - ..:/var/www/studip/public/plugins_packages/exclusivebbb/ExclusiveBBB
       - ./config_local.inc.php:/var/www/studip/config/config_local.inc.php:ro
+      - ./mysql-client.cnf:/etc/mysql/conf.d/exbbb-client.cnf:ro
     environment:
       MYSQL_DATABASE: studip_db
       MYSQL_USER: studip_user

@@ -56,6 +56,24 @@ class ExclusiveBBB extends StudIPPlugin implements SystemPlugin
         }
     }
 
+    /**
+     * Plugins get every system role except Nobody on registration; the public
+     * join page needs it.
+     */
+    public static function onEnable($plugin_id)
+    {
+        self::grantNobodyRole((int) $plugin_id);
+    }
+
+    public static function grantNobodyRole(int $plugin_id): void
+    {
+        DBManager::get()->execute(
+            "INSERT IGNORE INTO roles_plugins (roleid, pluginid)
+             SELECT roleid, ? FROM roles WHERE rolename = 'Nobody'",
+            [$plugin_id]
+        );
+    }
+
     public function getPluginName()
     {
         return $this->_('Exklusive BBB-Server');

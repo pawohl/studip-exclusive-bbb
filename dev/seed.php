@@ -20,6 +20,21 @@ const NODES = [
 
 $db = DBManager::get();
 
+/**
+ * ResourceCategory::createResource() fails the building's parent check in the
+ * CLI context, so resources are created directly here.
+ */
+function createResource(ResourceCategory $category, string $name, string $description, string $parent_id): Resource
+{
+    $resource = new $category->class_name();
+    $resource->category_id = $category->id;
+    $resource->parent_id = $parent_id;
+    $resource->name = $name;
+    $resource->description = $description;
+    $resource->store();
+    return $resource;
+}
+
 // category with the same properties as the demo "Übungsraum" category
 $category = ResourceCategory::findOneBySQL('name = ?', [CATEGORY_NAME]);
 if (!$category) {
@@ -46,7 +61,7 @@ $location = Resource::findOneBySQL(
 $building = Resource::findOneBySQL("name = 'Virtuell'");
 if (!$building) {
     $building_category = ResourceCategory::findOneBySQL("class_name = 'Building'");
-    $building = $building_category->createResource('Virtuell', 'Virtuelle Räume', $location->id, [], true);
+    $building = createResource($building_category, 'Virtuell', 'Virtuelle Räume', $location->id);
     echo "created building {$building->id}\n";
 }
 
@@ -55,10 +70,9 @@ $admin = User::findByUsername('test_admin');
 foreach (NODES as [$name, $url, $secret]) {
     $room = Resource::findOneBySQL('name = ?', [$name]);
     if (!$room) {
-        $room = $category->createResource($name, 'BigBlueButton-Server, exklusiv buchbar', $building->id, [
-            'seats' => 500,
-            'booking_plan_is_public' => 1,
-        ], true);
+        $room = createResource($category, $name, 'BigBlueButton-Server, exklusiv buchbar', $building->id);
+        $room->setProperty('seats', 500);
+        $room->setProperty('booking_plan_is_public', 1);
         echo "created room {$room->id} ($name)\n";
     }
     $room->requestable = 1;
@@ -81,4 +95,16 @@ foreach (NODES as [$name, $url, $secret]) {
     $node->active = 1;
     $node->store();
     echo "node {$node->id} -> {$name}\n";
+}
+
+// demo users: skip the first-login prompts (terms of use, visibility) for E2E tests
+foreach (['test_admin', 'test_dozent', 'test_tutor', 'test_autor', 'root@studip'] as $username) {
+    $demo_user = User::findByUsername($username);
+    if ($demo_user) {
+        if ($demo_user->visible === 'unknown') {
+            $demo_user->visible = 'yes';
+            $demo_user->store();
+        }
+        UserConfig::get($demo_user->id)->store('TERMS_ACCEPTED', 1);
+    }
 }
