@@ -1,0 +1,109 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      studip_ref:
+        description: Stud.IP branch or tag to test against
+        default: '6.2'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  STUDIP_REPO: https://gitlab.studip.de/studip/studip.git
+  STUDIP_REF: ${{ inputs.studip_ref || '6.2' }}
+
+jobs:
+  unit:
+    name: Unit tests (PHP ${{ matrix.php }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # Stud.IP 6.2 requires PHP ^8.1; its Docker image uses 8.1
+        php: ['8.1', '8.4']
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: Lint PHP files
+        run: find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+
+      - name: PHPUnit
+        run: vendor/bin/phpunit --do-not-cache-result
+
+  integration:
+    name: Integration and E2E tests (Stud.IP ${{ inputs.studip_ref || '6.2' }})
+    needs: unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      COMPOSE_PROJECT_NAME: exbbb
+      STUDIP_SRC: ${{ github.workspace }}/../studip
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check out Stud.IP
+        run: |
+          git clone --depth 1 --branch "$STUDIP_REF" "$STUDIP_REPO" "$STUDIP_SRC"
+          echo "Stud.IP $STUDIP_REF at $(git -C "$STUDIP_SRC" rev-parse --short HEAD)" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: docker/setup-buildx-action@v4
+
+      # building Stud.IP compiles its frontend; the layer cache makes reruns fast
+      - name: Build Stud.IP image
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ env.STUDIP_SRC }}
+          file: ${{ env.STUDIP_SRC }}/docker/studip/Dockerfile
+          tags: exbbb-studip:6.2
+          load: true
+          cache-from: type=gha,scope=studip-${{ env.STUDIP_REF }}
+          cache-to: type=gha,mode=max,scope=studip-${{ env.STUDIP_REF }}
+
+      - name: Start stack
+        run: docker compose -f dev/docker-compose.yml up -d
+
+      - name: Set up plugin and test data
+        run: dev/setup.sh
+
+      - name: Integration tests
+        run: dev/run-tests.sh integration
+
+      - name: E2E tests
+        run: dev/run-tests.sh e2e
+
+      - name: Show container logs
+        if: failure()
+        run: docker compose -f dev/docker-compose.yml logs --tail 200
+
+      - name: Upload screenshots and Playwright results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results
+          path: |
+            dev/screenshots/*.png
+            dev/screenshots/results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Stop stack
+        if: always()
+        run: docker compose -f dev/docker-compose.yml down -v

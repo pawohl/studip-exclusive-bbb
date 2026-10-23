@@ -86,31 +86,39 @@ dev/setup.sh                                             # Plugin registrieren, 
   - `http://bbb-node2:8090/bigbluebutton/` mit Secret `node2-dev-secret`.
   - `/mock/calls` liefert die empfangenen API-Aufrufe.
 
-Unit-Tests (PHP 8.1 im Web-Container):
+### Tests
+
+`dev/run-tests.sh` führt alle Tests gegen den laufenden Stack aus. Es installiert bei Bedarf PHPUnit und die
+Playwright-Abhängigkeiten in Containern:
 
 ```sh
-docker run --rm -u "$(id -u):$(id -g)" -v "$PWD":/app -w /app composer:2 install --ignore-platform-reqs
-docker compose -f dev/docker-compose.yml exec \
-  -w /var/www/studip/public/plugins_packages/exclusivebbb/ExclusiveBBB web vendor/bin/phpunit
+dev/run-tests.sh              # alles
+dev/run-tests.sh unit         # nur Unit-Tests (PHP 8.1 im Web-Container)
+dev/run-tests.sh integration  # nur Integrationstest
+dev/run-tests.sh e2e          # nur E2E-Tests
 ```
 
-Integrationstest gegen das echte Buchungsmodell, die Mocks und Mailpit (43 Prüfungen). Er legt Buchungen
-an und entfernt sie wieder; mit `--keep-now` bleibt eine laufende Buchung für die E2E-Tests stehen:
+- **Unit-Tests** (26): BBB-Client und Prüfsummen, Zeitfenster, Passwörter, Entscheidungen des Cronjobs.
+- **Integrationstest** (43 Prüfungen): Er arbeitet gegen das echte Buchungsmodell, die BBB-Mocks und Mailpit.
+  Er legt Buchungen an und entfernt sie wieder, lässt aber eine laufende Buchung für die E2E-Tests stehen
+  (`dev/screenshots/now.json`).
+- **E2E-Tests** (11, Playwright im Docker-Netz des Stacks): Teilnahmeseite, Bearbeitung, Admin- und
+  Verwaltungsansicht sowie eine Buchung über den Buchungsdialog. Screenshots landen in `dev/screenshots/`.
 
-```sh
-docker compose -f dev/docker-compose.yml exec web \
-  php public/plugins_packages/exclusivebbb/ExclusiveBBB/tests/integration/booking_flow.php --keep-now
-docker cp exbbb-web-1:/tmp/exbbb-now.json dev/screenshots/now.json
-```
+Ein zweiter Stack für Tests läuft parallel zum Entwicklungs-Stack, wenn Projektname und Port abweichen,
+z. B. `COMPOSE_PROJECT_NAME=exbbb-ci EXBBB_PORT=8081`.
 
-E2E-Tests mit Playwright im Docker-Netz des Stacks. Screenshots landen in `dev/screenshots/`:
+### GitHub Actions
 
-```sh
-docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work -w /work/tests/e2e \
-  mcr.microsoft.com/playwright:v1.64.0-noble npm install
-docker run --rm --network exbbb_default -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/work \
-  -w /work/tests/e2e mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test
-```
+`.github/workflows/tests.yml` läuft bei jedem Push auf `main` und lässt sich unter *Actions* auch von Hand
+starten, dort optional gegen einen anderen Stud.IP-Branch oder -Tag.
+
+1. **Unit tests** auf PHP 8.1 und 8.4: Syntaxprüfung aller PHP-Dateien und PHPUnit.
+2. **Integration and E2E tests**:
+   - klont Stud.IP (`6.2`) von gitlab.studip.de und baut das Image; die Docker-Layer werden zwischengespeichert;
+   - startet diesen Stack und richtet ihn mit `dev/setup.sh` ein;
+   - führt Integrations- und E2E-Tests aus.
+   Screenshots und Playwright-Ergebnisse werden als Artefakt `e2e-results` hochgeladen.
 
 Cronjob von Hand ausführen:
 

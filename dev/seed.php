@@ -21,8 +21,7 @@ const NODES = [
 $db = DBManager::get();
 
 /**
- * ResourceCategory::createResource() fails the building's parent check in the
- * CLI context, so resources are created directly here.
+ * Creates a resource of the category's class below the given parent.
  */
 function createResource(ResourceCategory $category, string $name, string $description, string $parent_id): Resource
 {
@@ -53,6 +52,9 @@ if (!$category) {
         [$category->id, $template->id]
     );
     echo "created category {$category->id}\n";
+    // Stud.IP bug: storing a category before the category cache was loaded leaves
+    // the cache with only this category, so parent class lookups fail afterwards
+    ResourceCategory::findAll(true);
 }
 
 $location = Resource::findOneBySQL(

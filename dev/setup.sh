@@ -8,7 +8,14 @@ compose="docker compose -f docker-compose.yml"
 plugin=public/plugins_packages/exclusivebbb/ExclusiveBBB
 
 echo "waiting for Stud.IP ..."
+waited=0
 until $compose exec -T web php cli/studip config:get UNI_NAME_CLEAN >/dev/null 2>&1; do
+    waited=$((waited + 3))
+    if [ "$waited" -ge 600 ]; then
+        echo "Stud.IP did not come up within 10 minutes" >&2
+        $compose logs --tail 50 web >&2
+        exit 1
+    fi
     sleep 3
 done
 

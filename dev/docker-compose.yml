@@ -1,4 +1,5 @@
-# Development stack: Stud.IP 6.2 (built from ../../studip, branch 6.2) with
+# Development stack: Stud.IP 6.2 (built from $STUDIP_SRC, default ../../studip,
+# branch 6.2) with
 # this plugin mounted, MariaDB, Mailpit and two BBB API mocks as "nodes".
 #
 #   docker compose -f dev/docker-compose.yml up -d --build
@@ -13,7 +14,7 @@ services:
     image: mariadb:10.5
     volumes:
       - db_data:/var/lib/mysql
-      - ../../studip/docker/studip/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ${STUDIP_SRC:-../../studip}/docker/studip/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     environment:
       MYSQL_RANDOM_ROOT_PASSWORD: 1
       MYSQL_DATABASE: studip_db
@@ -22,7 +23,7 @@ services:
 
   web:
     build:
-      context: ../../studip
+      context: ${STUDIP_SRC:-../../studip}
       dockerfile: ./docker/studip/Dockerfile
     image: exbbb-studip:6.2
     # the entrypoint gives up if MariaDB is still initialising on first start
