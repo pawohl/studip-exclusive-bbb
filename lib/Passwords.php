@@ -8,7 +8,7 @@ namespace ExclusiveBBB;
  */
 class Passwords
 {
-    // no 0/O, 1/l/I to keep dictated passwords unambiguous
+    // no 0/O/o, 1/l/I to keep dictated passwords unambiguous
     private const ALPHABET = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
     public const ROLE_MODERATOR = 'moderator';
